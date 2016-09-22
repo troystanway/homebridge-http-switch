@@ -22,6 +22,7 @@ function HttpAdvancedAccessory(log, config) {
 	this.unlock_url             = config["unlock_url"]  			|| this.lock_url;
 	this.unlock_body            = config["unlock_body"] 			|| this.lock_body;
 	this.status_url             = config["status_url"];
+	this.status_regex           = config["status_regex"]			|| "";
 	this.brightness_url         = config["brightness_url"];
 	this.brightnesslvl_url      = config["brightnesslvl_url"];
 	this.http_method            = config["http_method"] 	  	 	|| "GET";
@@ -54,10 +55,16 @@ function HttpAdvancedAccessory(log, config) {
         		})
     	}, {longpolling:true,interval:300,longpollEventName:"statuspoll"});
 
-	statusemitter.on("statuspoll", function(data) {       
-        	var binaryState = parseInt(data);
-	    	that.state = binaryState > 0;
-		that.log(that.service, "received data:"+that.status_url, "state is currently", binaryState); 
+	statusemitter.on("statuspoll", function(data) {
+		if (Boolean(that.status_regex)) {
+      	var re = new RegExp(that.status_regex);
+      	that.state = re.test(data);
+		}
+		else {
+      	var binaryState = parseInt(data);
+      	that.state = binaryState > 0;
+		}
+		that.log(that.service, "received data:"+that.status_url, "state is currently", that.state.toString());
 
 		switch (that.service) {
 			case "Switch":
@@ -138,9 +145,10 @@ HttpAdvancedAccessory.prototype = {
 	    		callback(new Error("No status url defined."));
 	    		return;
    		 }
-    
+
     	var service = this.service;
 		var url = this.status_url;
+		var regex = this.status_regex;
     	this.log("Getting" , service , "state");
 
     	this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
@@ -148,9 +156,17 @@ HttpAdvancedAccessory.prototype = {
 				this.log('HTTP get power function failed: %s', error.message);
 				callback(error);
 			} else {
-				var binaryState = parseInt(responseBody);
-				var powerOn = binaryState > 0;
-				this.log(service, "state is currently", binaryState);
+				var powerOn = false;
+				if (Boolean(regex)) {
+					var re = new RegExp(regex);
+					powerOn = re.test(responseBody);
+				}
+				else
+				{
+					var binaryState = parseInt(responseBody);
+					powerOn = binaryState > 0;
+				}
+				this.log(service, "state is currently", powerOn.toString());
 				callback(null, powerOn);
 			}
 	    }.bind(this));

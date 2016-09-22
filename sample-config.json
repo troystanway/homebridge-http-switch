@@ -22,8 +22,7 @@
 		"brightnesslvl_url":  "http://localhost/status/100054",
 		"username" : "",
 		"password" : "",
-		"sendimmediately": "","
-									    
+		"sendimmediately": ""
        } 
     ]
 }

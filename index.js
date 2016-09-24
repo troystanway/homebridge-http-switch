@@ -136,6 +136,12 @@ function HttpExtensiveAccessory(log, config) {
                                 .setValue(that.state);
                         }
                         break;
+                    case "LockMechanism":
+                        if (that.lockService) {
+                            that.lockServe.getCharacteristic(Characteristic.LockCurrentState)
+                                .setValue(that.state);
+                        }
+                        break;
                 }
             } else {
                 that.log(that.service, "get_state_url did not return a valid state");

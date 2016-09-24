@@ -215,13 +215,11 @@ HttpExtensiveAccessory.prototype = {
                         } else {
                             var reOn = new RegExp(regexOn);
                             var reOff = new RegExp(regexOff);
-                            var foundOn = reOn.test(data);
-                            var foundOff = reOff.test(data);
+                            var foundOn = reOn.test(responseBody);
+                            var foundOff = reOff.test(responseBody);
 
                             if (foundOn || foundOff) {
-                                var state = false;
-                                var re = new RegExp(regex);
-                                state = re.test(responseBody);
+                                var state = foundOn;
                                 this.log(service, type + " state is currently", state.toString());
                                 callback(null, state);
                             } else {

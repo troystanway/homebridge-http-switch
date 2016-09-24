@@ -6,22 +6,89 @@
         "pin": "031-45-154"
     },
 
-    "description": "HomeBridge HTTP Status Control",
+    "description": "HomeBridge HTTP Extensive",
 
     "accessories": [{
-        "accessory": "Http",
-        "name": "Alfresco Lamp",
-        "switchHandling": "yes",
-        "http_method": "GET",
-        "on_url": "http://localhost/controller/1700/ON",
-        "off_url": "http://localhost/controller/1700/OFF",
-        "status_url": "http://localhost/status/100059",
-        "service": "Light",
-        "brightnessHandling": "yes",
-        "brightness_url": "http://localhost/controller/1707/%b",
-        "brightnesslvl_url": "http://localhost/status/100054",
+        "accessory": "Http-extensive",
+        "name": "Example simple switch where we do not have a url to get status",
+        "get_state_handling": "disabled",
+        "set_state_url": "http://ipadddress/?state={0}"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example switched lightBulb",
+        "service": "Lightbulb",
+        "get_state_url": "http://ipaddress/lightapi/status/?deviceid=2",
+        "get_state_on_regex": "status:true",
+        "get_state_off_regex": "status:false",
+        "get_state_handling": "continuous",
+        "set_state_url": "http://ipaddress/lightapi/status/?deviceid=2",
+        "set_state_method": "POST",
+        "set_state_on": "true",
+        "set_state_off": "false",
+        "set_state_body": "SetValue:{0}"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example Dimmable lamp",
+        "service": "Lightbulb",
+        "get_state_url": "http://localhost/status/100059",
+        "get_state_handling": "onrequest",
+        "set_state_url": "http://localhost/controller/1700/{0}",
+        "set_state_method": "GET",
+        "set_state_on": "ON",
+        "set_state_off": "OFF",
+        "set_level_url": "http://localhost/controller/1707/{0}",
+        "set_level_method": "GET",
+        "get_level_url": "http://localhost/status/100054",
+        "set_level_handling": "onrequest",
         "username": "",
         "password": "",
         "sendimmediately": ""
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example simple lock",
+        "service": "LockMechanism",
+        "get_state_url": "http://ipaddress/getCurrentState",
+        "set_state_url": "http://ipaddress/setCurrentState/{0}",
+        "get_target_url": "http://ipaddress/getTargetState",
+        "set_target_url": "http://ipaddress/setTargetState/{0}"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example advanced lock",
+        "service": "LockMechanism",
+        "get_state_url": "http://ipaddress/getState",
+        "get_state_on_regex": "current:\\w{4,5},\\w{4,5},true,\\w{4,5}",
+        "get_state_off_regex": "current:\\w{4,5},\\w{4,5},false,\\w{4,5}",
+        "set_state_url": "http://ipaddress/setCurrentState/3/{0}",
+        "set_state_on": "true",
+        "set_state_off": "false",
+        "get_target_url": "http://ipaddress/getState",
+        "get_target_on_regex": "target:\\w{4,5},\\w{4,5},true,\\w{4,5}",
+        "get_target_off_regex": "target:\\w{4,5},\\w{4,5},false,\\w{4,5}",
+        "set_target_url": "http://ipaddress/setTargetState/3/{0}",
+        "set_target_on": "true",
+        "set_target_off": "false"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example light switch",
+        "service": "Lightbulb",
+        "get_state_url": "http://ipaddress/getCurrentState",
+        "set_state_url": "http://ipaddress/setCurrentState/%s"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example light switch with brightness",
+        "service": "Lightbulb",
+        "get_state_url": "http://ipaddress/getCurrentState",
+        "set_state_url": "http://ipaddress/setCurrentState/{0}",
+        "get_level_url": "http://ipaddress/getCurrentLevel",
+        "set_level_url": "http://ipaddress/setCurrentLevel/{0}",
+        "get_state_handling": "continuous",
+        "get_level_handling": "continuous"
+    }, {
+        "accessory": "Http-extensive",
+        "name": "Example motion sensor",
+        "service": "MotionSensor",
+        "get_state_url": "http://ipaddress/data_request?id=status&output_format=xml&DeviceNum=1",
+        "get_state_on_regex": "service=\"urn:micasaverde-com:serviceId:SecuritySensor1\" variable=\"Tripped\" value=\"1\"",
+        "get_state_off_regex": "service=\"urn:micasaverde-com:serviceId:SecuritySensor1\" variable=\"Tripped\" value=\"0\""
     }]
 }

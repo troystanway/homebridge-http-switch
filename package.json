@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-http-advanced",
+  "name": "homebridge-http-extensive",
   "version": "0.1.0",
   "description": "http(s) plugin for Homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
@@ -15,11 +15,12 @@
   },
   "contributors":[
   { "name" : "Adrian Rudman"},
-  { "name" : "David Parry"}
+  { "name" : "David Parry"},
+  { "name" : "Richard Wifall"}
   ], 
   "repository": {
     "type": "git",
-    "url": "git://github.com/NovaGL/homebridge-http-advanced"
+    "url": "git://github.com/riwifall/homebridge-http-extensive"
   },
   "dependencies": {
     "request": "^2.65.0",

@@ -1,4 +1,4 @@
-# homebridge-http-advanced
+# homebridge-http-extensive
 
 Supports https devices on the HomeBridge Platform and provides a real time polling for getting the "On" and brightness level characteristics to Homekit. Includes Switch, Light, Door, Smoke and Motion sensor polling.
 
@@ -10,30 +10,58 @@ Supports https devices on the HomeBridge Platform and provides a real time polli
 
 # Configuration
 
-The configuration for this plugin is the same as [homebridge-http](https://github.com/rudders/homebridge-http) but includes an additional method to read the power state of the device and the brightness level. Specify the `status_url` in your config.json that returns the status of the device as an integer (0 = off, 1 = on). Specify the `brightnesslvl_url` to return the current brighness level as an integer.  Specify `status_regex` to specify a regular expression to match against the response from the status_url request.
 
-Status regular expression matching (`status_regex`) defines a regular expression string that is used to determine if the response from a status_url request is true or false.  For instance, if your status_url returns "PowerState:true" when the status is on and "PowerState:false" when the status is off, in your configuration you could specify: `"status_regex": "PowerState:true"`.
+#Valid configuration fields:
 
-Switch handling and brightness handling support 3 methods, yes for polling on app load, realtime for constant polling or no polling
+##General info
+name: The name of your accessory.  REQUIRED
+service: The type of your service. (Switch or Lightbulb or LockMechanism or SmokeSensor or MotionSensor).  DEFAULT: Switch
+
+##Authentication info
+username: The username for authentication.
+password: The password for authentication.
+sendimmediately: Authentication data gets sent on the initial URL request as Basic auth vs waiting for auth negotiation.  DEFAULT: undefined
+
+
+## Get state (Switch, Lightbulb, LockMechanism, SmokeSensor, MotionSensor)
+get_state_url: The URL that returns the state of the accessory. REQUIRED if get_state_handling is continuous or onrequest.
+get_state_on_regex: A regular expression that will match when the get_state_url body returns an on. DEFAULT: "1"
+get_state_off_regex: A regular expression that will match when the get_state_url body returns an off. DEFAULT: "0"
+get_state_handling: Whether state is queried at a continuous interval, only when requested, or disabled. (continuous, onrequest, disabled). DEFAULT: onrequest
+
+## Set state (Switch, Lightbulb, LockMechanism)
+set_state_url: The URL that sets the state of the accessory.
+set_state_method: The http method that will be used when using the set_state_url. Place {0} in the string where you want the state to occur. DEFAULT: "POST"
+set_state_body: The http body that will be sent with the request.  Place {0} in the string where you what the state to occur.  DEFAULT: "{0}"
+set_state_on: The string that is used to replace {0} in the set_state_url or set_state_body when the state is on.  DEFAULT: "1"
+set_state_off: The string that is used to replace {0} in the set_state_url or set_state_body when the state is off.  DEFAULT: "0"
+
+## Get target (LockMechanism)
+get_target_url: The URL that returns the target of the accessory. REQUIRED if get_target_handling is continuous or onrequest.
+get_target_on_regex: A regular expression that will match when the get_target_url body returns an on. DEFAULT: get_state_on_regex
+get_target_off_regex: A regular expression that will match when the get_target_url body returns an off. DEFAULT: get_state_off_regex
+get_target_handling: Whether target is queried at a continuous interval, only when requested, or disabled. (continuous, onrequest, disabled). DEFAULT: onrequest
+
+## Set target (LockMechanism)
+set_target_url: The URL that sets the target of the accessory.
+set_target_method: The http method that will be used when using the set_target_url. Place {0} in the string where you want the target string to occur. DEFAULT: set_state_method
+set_target_on: The string that is used to replace {0} in the set_target_url or set_target_body when the target is on.  DEFAULT: set_state_on
+set_target_off: The string that is used to replace {0} in the set_target_url or set_target_body when the target is off.  DEFAULT: set_state_off
+set_target_body: The http body that will be sent with the request.  Place {0} in the string where you what the target string to occur.  DEFAULT: set_state_body
+
+## Get levels (Lightbulb) - For dimmable lights
+get_level_url: The URL that gets the numeric level of the accessory.
+get_level_regex: The regex string that will return a numeric level value when matched against the get_level_url body.  DEFAULT: "\\d+"
+get_level_handling: Whether level is queried at a continuous interval, only when requested, or disabled. (continuous, onrequest, disabled). DEFAULT:"onrequest"
+
+## Set levels (Lightbulb) - For dimmable lights
+set_level_url: The URL that sets the numeric level of the accessory.
+set_level_method: The http method that will be used when using the set_level_url. Place {0} in the string where you want the level string to occur. DEFAULT: set_state_method
+set_level_body: The http body that will be sent with the request.  Place {0} in the string where you what the numeric level string to occur. DEFAULT: "{0}"
+
+
 
 Configuration sample:
 
  ```
-"accessories": [ 
-	{
-		"accessory": "Http",
-		"name": "Alfresco Lamp",
-		"switchHandling": "realtime",
-		"http_method": "GET",
-		"on_url":      "http://localhost/controller/1700/ON",
-		"off_url":     "http://localhost/controller/1700/OFF",
-		"status_url":  "http://localhost/status/100059",
-		"service": "Light",
-		"brightnessHandling": "yes",
-		"brightness_url":     "http://localhost/controller/1707/%b",
-		"brightnesslvl_url":  "http://localhost/status/100054",
-		"sendimmediately": "",
-		"username" : "",
-		"password" : ""					    
-       } 
-    ]
+ 

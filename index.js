@@ -135,8 +135,10 @@ function HttpExtensiveAccessory(log, config) {
                         break;
                     case "LockMechanism":
                         if (that.lockService) {
+                            var lockValue = that.state ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+                            
                             that.lockService.getCharacteristic(Characteristic.LockCurrentState)
-                                .setValue(that.state);
+                                .setValue(lockValue);
                         }
                         break;
                 }

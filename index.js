@@ -100,10 +100,13 @@ function HttpExtensiveAccessory(log, config) {
             var foundOff = reOff.test(data);
 
             if (foundOn || foundOff) {
+                // Is the previous state different than the new state?
+                if (that.state != foundOn)
+                {
+                    that.log(that.service, "received data:" + that.name, "state is currently", that.state.toString());                    
+                }
                 // Found a state
                 that.state = foundOn;
-
-                that.log(that.service, "received data:" + that.get_state_url, "state is currently", that.state.toString());
 
                 switch (that.service) {
                     case "Switch":

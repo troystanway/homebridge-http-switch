@@ -101,12 +101,15 @@ function HttpExtensiveAccessory(log, config) {
 
             if (foundOn || foundOff) {
                 // Is the previous state different than the new state?
-                if (that.state != foundOn)
+                var previousState = that.state;
+
+                // Found a state
+                that.state = foundOn;
+
+                if (that.state != previousState)
                 {
                     that.log(that.service, "received data:" + that.name, "state is currently", that.state.toString());                    
                 }
-                // Found a state
-                that.state = foundOn;
 
                 switch (that.service) {
                     case "Switch":

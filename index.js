@@ -196,7 +196,7 @@ HttpExtensiveAccessory.prototype = {
                         }
                     },
                     // error, response, body
-                    callback
+                    callback);
                 },
                 getGenericState: function(type, url, regexOn, regexOff, callback) {
                     if (!url) {

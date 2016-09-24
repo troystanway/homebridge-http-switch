@@ -57,7 +57,7 @@ Supports https devices on the HomeBridge Platform and provides a real time polli
 ## Set levels (Lightbulb) - For dimmable lights
 **set_level_url**: The URL that sets the numeric level of the accessory.  
 **set_level_method**: The http method that will be used when using the set_level_url. Place {0} in the string where you want the level string to occur. DEFAULT: set_state_method  
-**set_level_body: The http body that will be sent with the request.  Place {0} in the string where you what the numeric level string to occur. DEFAULT: "{0}"  
+**set_level_body**: The http body that will be sent with the request.  Place {0} in the string where you what the numeric level string to occur. DEFAULT: "{0}"  
 
 
 

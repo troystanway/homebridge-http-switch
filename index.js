@@ -11,7 +11,7 @@ module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     homebridge.registerAccessory("homebridge-http-extensive", "Http-extensive", HttpExtensiveAccessory);
-}
+};
 
 
 function HttpExtensiveAccessory(log, config) {
@@ -70,22 +70,21 @@ function HttpExtensiveAccessory(log, config) {
     var that = this;
 
     // Sensors will only work with continuous monitoring
-    if (this.service == "SmokeSensor" || this.service == "MotionSensor") {
+    if (this.service === "SmokeSensor" || this.service === "MotionSensor") {
         this.get_state_handling = "continuous";
     }
 
     // Status Polling
-    if ((this.get_state_url && this.get_state_handling == "continuous")) {
+    if ((this.get_state_url && this.get_state_handling === "continuous")) {
         var stateUrl = this.get_state_url;
         var statusemitter = pollingtoevent(function(done) {
             that.httpRequest(stateUrl, "", "GET", that.username, that.password, that.sendimmediately, function(error, response, body) {
                 if (error) {
                     that.log('HTTP get state failed: %s', error.message);
-                    callback(error);
                 } else {
                     done(null, body);
                 }
-            })
+            });
         }, {
             longpolling: true,
             interval: 300,
@@ -93,7 +92,6 @@ function HttpExtensiveAccessory(log, config) {
         });
 
         statusemitter.on("statuspoll", function(data) {
-            var state = false;
             var reOn = new RegExp(that.get_state_on_regex);
             var reOff = new RegExp(that.get_state_off_regex);
             var foundOn = reOn.test(data);
@@ -106,9 +104,8 @@ function HttpExtensiveAccessory(log, config) {
                 // Found a state
                 that.state = foundOn;
 
-                if (that.state != previousState)
-                {
-                    that.log(that.service, "received data:" + that.name, "state is currently", that.state.toString());                    
+                if (that.state !== previousState) {
+                    that.log(that.service, "received data:" + that.name, "state is currently", that.state.toString());
                 }
 
                 switch (that.service) {
@@ -150,7 +147,7 @@ function HttpExtensiveAccessory(log, config) {
     }
 
     // Level Polling
-    if (this.get_level_url && this.get_level_handling == "continuous") {
+    if (this.get_level_url && this.get_level_handling === "continuous") {
         var levelurl = this.get_level_url;
         var levelemitter = pollingtoevent(function(done) {
             that.httpRequest(levelurl, "", "GET", that.username, that.password, that.sendimmediately, function(error, response, responseBody) {
@@ -160,7 +157,7 @@ function HttpExtensiveAccessory(log, config) {
                 } else {
                     done(null, responseBody);
                 }
-            })
+            });
         }, {
             longpolling: true,
             interval: 2000,
@@ -187,277 +184,282 @@ function HttpExtensiveAccessory(log, config) {
 }
 
 HttpExtensiveAccessory.prototype = {
-        format: function(format) {
-            var args = Array.prototype.slice.call(arguments, 1);
-            return format.replace(/{(\d+)}/g, function(match, number) {
-                return typeof args[number] != 'undefined' ?
-                    args[number] :
-                    match;
-            });
-        },
-        httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
-            request({
-                        url: url,
-                        body: body,
-                        method: method,
-                        rejectUnauthorized: false,
-                        auth: {
-                            user: username,
-                            pass: password,
-                            sendImmediately: sendimmediately
-                        }
-                    },
-                    // error, response, body
-                    callback);
-                },
-                getGenericState: function(type, url, regexOn, regexOff, callback) {
-                    if (!url) {
-                        this.log.warn("Ignoring request; No " + type + " url defined.");
-                        callback(new Error("No " + type + " url defined."));
-                        return;
-                    }
-
-                    var service = this.service;
-                    this.log("Getting", service, "state");
-
-                    this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
-                        if (error) {
-                            this.log('HTTP get %s state failed: %s', type, error.message);
-                            callback(error);
-                        } else {
-                            var reOn = new RegExp(regexOn);
-                            var reOff = new RegExp(regexOff);
-                            var foundOn = reOn.test(responseBody);
-                            var foundOff = reOff.test(responseBody);
-
-                            if (foundOn || foundOff) {
-                                var state = foundOn;
-                                this.log(service, type + " state is currently", state.toString());
-                                callback(null, state);
-                            } else {
-                                this.log('HTTP get %s did not return a valid state', type);
-                                callback(new Error('No valid state returned for ' + type));
-                            }
-                        }
-                    }.bind(this));
-                },
-                getStatusState: function(callback) {
-                    this.getGenericState("status", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
-                },
-                setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
-                    if (!url) {
-                        this.log.warn("Ignoring request; No " + type + " url defined.");
-                        callback(new Error("No " + type + " url defined."));
-                        return;
-                    }
-
-                    var valueStr = value ? onStr : offStr;
-                    this.log('Setting %s state to %s', type, value);
-                    var completeUrl = this.format(url, valueStr);
-                    var completeBody = this.format(body, valueStr);
-
-                    this.httpRequest(completeUrl, completeBody, method, this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
-                        if (error) {
-                            this.log('HTTP set %s function failed: %s', type, error.message);
-                            callback(error);
-                        } else {
-                            this.log('HTTP set %s function succeeded!', type);
-                            callback();
-                        }
-                    }.bind(this));
-
-                },
-                setPowerState: function(powerOn, callback) {
-                    this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, powerOn, callback);
-                },
-
-                getLockCurrentState: function(callback) {
-                    this.getGenericState("get_state_url", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
-                },
-                setLockCurrentState: function(value, callback) {
-                    this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
-                },
-                getLockTargetState: function(callback) {
-                    this.getGenericState("get_target_url", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
-                },
-
-                setLockTargetState: function(value, callback) {
-                    this.setGenericState("set_target_url", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
-                },
-
-
-                getLevel: function(callback) {
-                    if (!this.get_level_url) {
-                        this.log.warn("Ignoring request; No get_level_url defined.");
-                        callback(new Error("No get_level_url defined."));
-                        return;
-                    }
-                    var url = this.get_level_url;
-                    var re = new RegExp(this.get_level_regex);
-                    this.log("Getting level");
-
-                    this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
-                        if (error) {
-                            this.log('HTTP get brightness function failed: %s', error.message);
-                            callback(error);
-                        } else {
-                            var matches = re.match(responseBody);
-                            if (matches) {
-                                // Get the first match
-                                var level = matches[0];
-                                this.log("The level is currently %s", level);
-                                callback(null, level);
-                            } else {
-                                this.log('get_level_url failed to return a response that matched the regular expression in get_level_regex');
-                                callback(new Error('get_level_url failed to return a valid response'));
-                            }
-                        }
-                    }.bind(this));
-                },
-
-                setLevel: function(level, callback) {
-                    if (!this.set_level_url) {
-                        this.log.warn("Ignoring request; No set_level_url defined.");
-                        callback(new Error("No set_level_url defined."));
-                        return;
-                    }
-
-                    var completeUrl = this.format(this.set_level_url, level);
-                    var completeBody = this.format(this.set_level_body, level);
-
-                    this.log("Setting level to %s", level);
-
-                    this.httpRequest(completeUrl, completeBody, this.set_level_method, this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
-                        if (error) {
-                            this.log('HTTP set_level_url function failed: %s', error);
-                            callback(error);
-                        } else {
-                            this.log('HTTP set_level_url function succeeded!');
-                            callback();
-                        }
-                    }.bind(this));
-                },
-
-                identify: function(callback) {
-                    this.log("Identify requested!");
-                    callback(); // success
-                },
-
-                getServices: function() {
-                    var that = this;
-
-                    var informationService = new Service.AccessoryInformation();
-
-                    informationService
-                        .setCharacteristic(Characteristic.Manufacturer, "HTTP Manufacturer")
-                        .setCharacteristic(Characteristic.Model, "HTTP Model")
-                        .setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
-
-                    switch (this.service) {
-                        case "Switch":
-                            this.switchService = new Service.Switch(this.name);
-                            switch (this.get_state_handling) {
-                                case "onrequest":
-                                    this.switchService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('get', this.getStatusState.bind(this))
-                                        .on('set', this.setPowerState.bind(this));
-                                    return [this.switchService];
-                                    break;
-                                case "continuous":
-                                    this.switchService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('get', function(callback) {
-                                            callback(null, that.state)
-                                        })
-                                        .on('set', this.setPowerState.bind(this));
-                                    return [this.switchService];
-                                    break;
-                                default:
-                                    this.switchService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('set', this.setPowerState.bind(this));
-                                    return [this.switchService];
-                                    break;
-                            }
-                        case "Lightbulb":
-                            this.lightbulbService = new Service.Lightbulb(this.name);
-                            switch (this.get_state_handling) {
-
-                                case "onrequest":
-                                    this.lightbulbService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('get', this.getStatusState.bind(this))
-                                        .on('set', this.setPowerState.bind(this));
-                                    break;
-                                case "continuous":
-                                    this.lightbulbService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('get', function(callback) {
-                                            callback(null, that.state)
-                                        })
-                                        .on('set', this.setPowerState.bind(this));
-                                    break;
-                                default:
-                                    this.lightbulbService
-                                        .getCharacteristic(Characteristic.On)
-                                        .on('set', this.setPowerState.bind(this));
-                                    break;
-                            }
-
-                            if (this.get_level_handling == "continuous") {
-                                this.lightbulbService
-                                    .addCharacteristic(new Characteristic.Brightness())
-                                    .on('get', function(callback) {
-                                        callback(null, that.currentlevel)
-                                    })
-                                    .on('set', this.setLevel.bind(this));
-                            } else if (this.get_level_handling == "onrequest") {
-                                this.lightbulbService
-                                    .addCharacteristic(new Characteristic.Brightness())
-                                    .on('get', this.getLevel.bind(this))
-                                    .on('set', this.setLevel.bind(this));
-                            }
-
-                            return [informationService, this.lightbulbService];
-                            break;
-                        case "LockMechanism":
-                            var lockService = new Service.LockMechanism(this.name);
-
-                            lockService
-                                .getCharacteristic(Characteristic.LockCurrentState)
-                                .on('get', this.getLockCurrentState.bind(this))
-                                .on('set', this.setLockCurrentState.bind(this));
-
-                            lockService
-                                .getCharacteristic(Characteristic.LockTargetState)
-                                .on('get', this.getLockTargetState.bind(this))
-                                .on('set', this.setLockTargetState.bind(this));
-
-                            return [lockService];
-                            break;
-                        case "SmokeSensor":
-                            this.smokeService = new Service.SmokeSensor(this.name);
-                            this.get_state_handling = "continuous";
-
-                            this.smokeService
-                                .getCharacteristic(Characteristic.SmokeDetected)
-                                .on('get', function(callback) {
-                                    callback(null, that.state)
-                                });
-
-                            return [this.smokeService];
-                        case "MotionSensor":
-                            this.motionService = new Service.MotionSensor(this.name);
-                            this.get_state_handling = "continuous";
-                            this.motionService
-                                .getCharacteristic(Characteristic.MotionDetected)
-                                .on('get', function(callback) {
-                                    callback(null, that.state)
-                                });
-
-                            return [this.motionService];
-                            break;
-                    }
+    format: function(format) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return format.replace(/{(\d+)}/g, function(match, number) {
+            return typeof args[number] !== 'undefined' ?
+                args[number] :
+                match;
+        });
+    },
+    httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
+        request({
+                url: url,
+                body: body,
+                method: method,
+                rejectUnauthorized: false,
+                auth: {
+                    user: username,
+                    pass: password,
+                    sendImmediately: sendimmediately
                 }
-        };
+            },
+            // error, response, body
+            callback);
+    },
+    getGenericState: function(type, url, regexOn, regexOff, callback) {
+        if (!url) {
+            this.log.warn("Ignoring request; No " + type + " url defined.");
+            callback(new Error("No " + type + " url defined."));
+            return;
+        }
+
+        var service = this.service;
+        this.log("Getting", service, "state");
+
+        this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
+            if (error) {
+                this.log('HTTP get %s state failed: %s', type, error.message);
+                callback(error);
+            } else {
+                var reOn = new RegExp(regexOn);
+                var reOff = new RegExp(regexOff);
+                var foundOn = reOn.test(responseBody);
+                var foundOff = reOff.test(responseBody);
+
+                if (foundOn || foundOff) {
+                    var state = foundOn;
+                    this.log(service, type + " state is currently", state.toString());
+                    callback(null, state);
+                } else {
+                    this.log('HTTP get %s did not return a valid state', type);
+                    callback(new Error('No valid state returned for ' + type));
+                }
+            }
+        }.bind(this));
+    },
+    getStatusState: function(callback) {
+        this.getGenericState("status", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
+    },
+    setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
+        if (!url) {
+            this.log.warn("Ignoring request; No " + type + " url defined.");
+            callback(new Error("No " + type + " url defined."));
+            return;
+        }
+
+        var valueStr = value ? onStr : offStr;
+        this.log('Setting %s state to %s', type, value);
+        var completeUrl = this.format(url, valueStr);
+        var completeBody = this.format(body, valueStr);
+
+        this.httpRequest(completeUrl, completeBody, method, this.username, this.password, this.sendimmediately, function(error, response) {
+            if (error) {
+                this.log('HTTP set %s function failed: %s', type, error.message);
+                callback(error);
+            } else {
+                if (response.statusCode === 200) {
+                    this.log('HTTP set %s function succeeded!', type);
+                    callback();
+                } else {
+                    this.log('set %s returned statusCode: %s', type, response.statusCode);
+                    callback(new(Error("set " + type + " returned statusCode: " + response.statusCode)));
+                }
+            }
+        }.bind(this));
+
+    },
+    setPowerState: function(powerOn, callback) {
+        this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, powerOn, callback);
+    },
+
+    getLockCurrentState: function(callback) {
+        this.getGenericState("get_state_url", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
+    },
+    setLockCurrentState: function(value, callback) {
+        this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
+    },
+    getLockTargetState: function(callback) {
+        this.getGenericState("get_target_url", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
+    },
+
+    setLockTargetState: function(value, callback) {
+        this.setGenericState("set_target_url", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
+    },
+
+
+    getLevel: function(callback) {
+        if (!this.get_level_url) {
+            this.log.warn("Ignoring request; No get_level_url defined.");
+            callback(new Error("No get_level_url defined."));
+            return;
+        }
+        var url = this.get_level_url;
+        var re = new RegExp(this.get_level_regex);
+        this.log("Getting level");
+
+        this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
+            if (error) {
+                this.log('HTTP get brightness function failed: %s', error.message);
+                callback(error);
+            } else {
+                var matches = re.match(responseBody);
+                if (matches) {
+                    // Get the first match
+                    var level = matches[0];
+                    this.log("The level is currently %s", level);
+                    callback(null, level);
+                } else {
+                    this.log('get_level_url failed to return a response that matched the regular expression in get_level_regex');
+                    callback(new Error('get_level_url failed to return a valid response'));
+                }
+            }
+        }.bind(this));
+    },
+
+    setLevel: function(level, callback) {
+        if (!this.set_level_url) {
+            this.log.warn("Ignoring request; No set_level_url defined.");
+            callback(new Error("No set_level_url defined."));
+            return;
+        }
+
+        var completeUrl = this.format(this.set_level_url, level);
+        var completeBody = this.format(this.set_level_body, level);
+
+        this.log("Setting level to %s", level);
+
+        this.httpRequest(completeUrl, completeBody, this.set_level_method, this.username, this.password, this.sendimmediately, function(error, response) {
+            if (error) {
+                this.log('HTTP set_level_url function failed: %s', error);
+                callback(error);
+            } else {
+                if (response.statusCode === 200) {
+                    this.log('HTTP set_level_url function succeeded!');
+                    callback();
+                } else {
+                    this.log("HTTP set_level_url failed with response code: %s", response.statusCode);
+                    callback(new Error("set_level_url returned code: " + response.statusCode));
+                }
+            }
+        }.bind(this));
+    },
+
+    identify: function(callback) {
+        this.log("Identify requested!");
+        callback(); // success
+    },
+
+    getServices: function() {
+        var that = this;
+
+        var informationService = new Service.AccessoryInformation();
+
+        informationService
+            .setCharacteristic(Characteristic.Manufacturer, "HTTP Manufacturer")
+            .setCharacteristic(Characteristic.Model, "HTTP Model")
+            .setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
+
+        switch (this.service) {
+            case "Switch":
+                this.switchService = new Service.Switch(this.name);
+                switch (this.get_state_handling) {
+                    case "onrequest":
+                        this.switchService
+                            .getCharacteristic(Characteristic.On)
+                            .on('get', this.getStatusState.bind(this))
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                    case "continuous":
+                        this.switchService
+                            .getCharacteristic(Characteristic.On)
+                            .on('get', function(callback) {
+                                callback(null, that.state);
+                            })
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                    default:
+                        this.switchService
+                            .getCharacteristic(Characteristic.On)
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                }
+                return [this.switchService];
+            case "Lightbulb":
+                this.lightbulbService = new Service.Lightbulb(this.name);
+                switch (this.get_state_handling) {
+
+                    case "onrequest":
+                        this.lightbulbService
+                            .getCharacteristic(Characteristic.On)
+                            .on('get', this.getStatusState.bind(this))
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                    case "continuous":
+                        this.lightbulbService
+                            .getCharacteristic(Characteristic.On)
+                            .on('get', function(callback) {
+                                callback(null, that.state);
+                            })
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                    default:
+                        this.lightbulbService
+                            .getCharacteristic(Characteristic.On)
+                            .on('set', this.setPowerState.bind(this));
+                        break;
+                }
+
+                if (this.get_level_handling === "continuous") {
+                    this.lightbulbService
+                        .addCharacteristic(new Characteristic.Brightness())
+                        .on('get', function(callback) {
+                            callback(null, that.currentlevel);
+                        })
+                        .on('set', this.setLevel.bind(this));
+                } else if (this.get_level_handling === "onrequest") {
+                    this.lightbulbService
+                        .addCharacteristic(new Characteristic.Brightness())
+                        .on('get', this.getLevel.bind(this))
+                        .on('set', this.setLevel.bind(this));
+                }
+
+                return [informationService, this.lightbulbService];
+            case "LockMechanism":
+                var lockService = new Service.LockMechanism(this.name);
+
+                lockService
+                    .getCharacteristic(Characteristic.LockCurrentState)
+                    .on('get', this.getLockCurrentState.bind(this))
+                    .on('set', this.setLockCurrentState.bind(this));
+
+                lockService
+                    .getCharacteristic(Characteristic.LockTargetState)
+                    .on('get', this.getLockTargetState.bind(this))
+                    .on('set', this.setLockTargetState.bind(this));
+
+                return [lockService];
+            case "SmokeSensor":
+                this.smokeService = new Service.SmokeSensor(this.name);
+                this.get_state_handling = "continuous";
+
+                this.smokeService
+                    .getCharacteristic(Characteristic.SmokeDetected)
+                    .on('get', function(callback) {
+                        callback(null, that.state);
+                    });
+
+                return [this.smokeService];
+            case "MotionSensor":
+                this.motionService = new Service.MotionSensor(this.name);
+                this.get_state_handling = "continuous";
+                this.motionService
+                    .getCharacteristic(Characteristic.MotionDetected)
+                    .on('get', function(callback) {
+                        callback(null, that.state);
+                    });
+
+                return [this.motionService];
+        }
+    }
+};

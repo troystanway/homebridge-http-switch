@@ -141,6 +141,14 @@ function HttpExtensiveAccessory(log, config) {
                                 .setValue(lockValue);
                         }
                         break;
+                    case "GarageDoorOpener":
+                        if (this.garageDoorService) {
+                            var garageState = that.state ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN;
+                            
+                            that.garageDoorService.getCharacteristic(Characteristic.CurrentDoorState)
+                            .setValue(garageState);
+                        }
+                        break;
                 }
             } else {
                 that.log(that.service, "get_state_url did not return a valid state");
@@ -190,6 +198,14 @@ function HttpExtensiveAccessory(log, config) {
                                 .setValue(lockValue);
                         }
                         break;
+                    case "GarageDoorOpener":
+                        if (this.garageDoorService) {
+                            var garageState = that.state ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN;
+                            
+                            that.garageDoorService.getCharacteristic(Characteristic.TargetDoorState)
+                            .setValue(garageState);
+                        }
+                        break;    
                 }
             } else {
                 that.log(that.service, "get_target_url did not return a valid state");
@@ -338,8 +354,19 @@ HttpExtensiveAccessory.prototype = {
     setLockTargetState: function(value, callback) {
         this.setGenericState("set_target_url", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
-
-
+    getDoorState: function(callback) {
+        this.getGenericState("getDoorState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
+    },
+    setDoorState: function(value, callback) {
+        this.setGenericState("setDoorState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
+    },
+    getDoorTarget: function(callback) {
+        this.getGenericState("getDoorTarget", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
+    },
+    setDoorTarget: function(value, callback) {
+        this.setGenericState("setDoorTarget", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
+    },
+    
     getLevel: function(callback) {
         if (!this.get_level_url) {
             this.log.warn("Ignoring request; No get_level_url defined.");
@@ -529,6 +556,19 @@ HttpExtensiveAccessory.prototype = {
                     });
 
                 return [this.motionService];
+            case "GarageDoorOpener":
+                this.garageDoorService = new Service.GarageDoorOpener(this.name);
+                
+                this.garageDoorService
+                    .getCharacteristic(Characteristic.CurrentDoorState)
+                    .on('get', this.getDoorState.bind(this))
+                    .on('set', this.setDoorState.bind(this));
+                    
+                this.garageDoorService
+                    .getCharacteristic(Characteristic.TargetDoorState)
+                    .on('get', this.getDoorTarget.bind(this))
+                    .on('set', this.setDoorTarget.bind(this));
+                    
         }
     }
 };

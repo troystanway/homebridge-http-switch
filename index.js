@@ -569,6 +569,7 @@ HttpExtensiveAccessory.prototype = {
                     .on('get', this.getDoorTarget.bind(this))
                     .on('set', this.setDoorTarget.bind(this));
                     
+                return [this.garageDoorService];
         }
     }
 };

@@ -148,6 +148,56 @@ function HttpExtensiveAccessory(log, config) {
         });
     }
 
+    // target Polling
+    if ((this.get_target_url && this.get_target_handling === "continuous")) {
+        var targetUrl = this.get_target_url;
+        var previousTarget = false;
+        var targetemitter = pollingtoevent(function(done) {
+            that.httpRequest(targetUrl, "", "GET", that.username, that.password, that.sendimmediately, function(error, response, body) {
+                if (error) {
+                    that.log('HTTP get target failed: %s', error.message);
+                } else {
+                    done(null, body);
+                }
+            });
+        }, {
+            longpolling: true,
+            interval: 300,
+            longpollEventName: "targetpoll"
+        });
+
+        targetemitter.on("targetpoll", function(data) {
+            var reOn = new RegExp(that.get_target_on_regex);
+            var reOff = new RegExp(that.get_target_off_regex);
+            var foundOn = reOn.test(data);
+            var foundOff = reOff.test(data);
+
+            if (foundOn || foundOff) {
+                // Is the previous state different than the new state?
+                var target = foundOn;
+
+                if (target !== previousTarget) {
+                    that.log(that.service, "received data:" + that.name, "target is currently", target.toString());
+                    previousTarget = target;
+                }
+
+                switch (that.service) {
+                    case "LockMechanism":
+                        if (that.lockService) {
+                            var lockValue = target ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+
+                            that.lockService.getCharacteristic(Characteristic.LockTargetState)
+                                .setValue(lockValue);
+                        }
+                        break;
+                }
+            } else {
+                that.log(that.service, "get_target_url did not return a valid state");
+            }
+        });
+    }
+
+
     // Level Polling
     if (this.get_level_url && this.get_level_handling === "continuous") {
         var levelurl = this.get_level_url;

@@ -136,7 +136,7 @@ function HttpExtensiveAccessory(log, config) {
                     case "LockMechanism":
                         if (that.lockService) {
                             var lockValue = that.state ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-                            
+
                             that.lockService.getCharacteristic(Characteristic.LockCurrentState)
                                 .setValue(lockValue);
                         }
@@ -430,15 +430,32 @@ HttpExtensiveAccessory.prototype = {
             case "LockMechanism":
                 var lockService = new Service.LockMechanism(this.name);
 
-                lockService
-                    .getCharacteristic(Characteristic.LockCurrentState)
-                    .on('get', this.getLockCurrentState.bind(this))
-                    .on('set', this.setLockCurrentState.bind(this));
+                if (this.set_state_url) {
+                    // Only handle "set" if we have a set_state_url
+                    lockService
+                        .getCharacteristic(Characteristic.LockCurrentState)
+                        .on('get', this.getLockCurrentState.bind(this))
+                        .on('set', this.setLockCurrentState.bind(this));
+                } else {
+                    lockService
+                        .getCharacteristic(Characteristic.LockCurrentState)
+                        .on('get', this.getLockCurrentState.bind(this));
+                }
 
-                lockService
-                    .getCharacteristic(Characteristic.LockTargetState)
-                    .on('get', this.getLockTargetState.bind(this))
-                    .on('set', this.setLockTargetState.bind(this));
+                if (this.get_target_url) {
+                    // Only handle target if we have a get_target_url
+                    if (this.set_target_url) {
+                        // Only handle "set" if we have a set_target_url
+                        lockService
+                            .getCharacteristic(Characteristic.LockTargetState)
+                            .on('get', this.getLockTargetState.bind(this))
+                            .on('set', this.setLockTargetState.bind(this));
+                    } else {
+                        lockService
+                            .getCharacteristic(Characteristic.LockTargetState)
+                            .on('get', this.getLockTargetState.bind(this));
+                    }
+                }
 
                 return [lockService];
             case "SmokeSensor":

@@ -478,16 +478,16 @@ HttpExtensiveAccessory.prototype = {
 
                 return [informationService, this.lightbulbService];
             case "LockMechanism":
-                var lockService = new Service.LockMechanism(this.name);
+                this.lockService = new Service.LockMechanism(this.name);
 
                 if (this.set_state_url) {
                     // Only handle "set" if we have a set_state_url
-                    lockService
+                    this.lockService
                         .getCharacteristic(Characteristic.LockCurrentState)
                         .on('get', this.getLockCurrentState.bind(this))
                         .on('set', this.setLockCurrentState.bind(this));
                 } else {
-                    lockService
+                    this.lockService
                         .getCharacteristic(Characteristic.LockCurrentState)
                         .on('get', this.getLockCurrentState.bind(this));
                 }
@@ -496,18 +496,18 @@ HttpExtensiveAccessory.prototype = {
                     // Only handle target if we have a get_target_url
                     if (this.set_target_url) {
                         // Only handle "set" if we have a set_target_url
-                        lockService
+                        this.lockService
                             .getCharacteristic(Characteristic.LockTargetState)
                             .on('get', this.getLockTargetState.bind(this))
                             .on('set', this.setLockTargetState.bind(this));
                     } else {
-                        lockService
+                        this.lockService
                             .getCharacteristic(Characteristic.LockTargetState)
                             .on('get', this.getLockTargetState.bind(this));
                     }
                 }
 
-                return [lockService];
+                return [this.lockService];
             case "SmokeSensor":
                 this.smokeService = new Service.SmokeSensor(this.name);
                 this.get_state_handling = "continuous";

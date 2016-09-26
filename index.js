@@ -348,6 +348,10 @@ HttpExtensiveAccessory.prototype = {
         this.getGenericState("getLockCurrentState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
 
+    getLockTargetState: function(callback) {
+        this.getGenericState("getLockTargetState", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
+    },
+
     setLockTargetState: function(value, callback) {
         this.setGenericState("setLockTargetState", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
@@ -512,6 +516,10 @@ HttpExtensiveAccessory.prototype = {
                 this.lockService
                     .getCharacteristic(Characteristic.LockCurrentState)
                     .on('get', this.getLockCurrentState.bind(this));
+
+                this.lockService
+                    .getCharacteristic(Characteristic.LockTargetState)
+                    .on('get', this.getLockTargetState.bind(this));
 
                 this.lockService
                     .getCharacteristic(Characteristic.LockTargetState)

@@ -144,9 +144,9 @@ function HttpExtensiveAccessory(log, config) {
                     case "GarageDoorOpener":
                         if (this.garageDoorService) {
                             var garageState = that.state ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN;
-                            
+
                             that.garageDoorService.getCharacteristic(Characteristic.CurrentDoorState)
-                            .setValue(garageState);
+                                .setValue(garageState);
                         }
                         break;
                 }
@@ -201,11 +201,11 @@ function HttpExtensiveAccessory(log, config) {
                     case "GarageDoorOpener":
                         if (this.garageDoorService) {
                             var garageState = that.state ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN;
-                            
+
                             that.garageDoorService.getCharacteristic(Characteristic.TargetDoorState)
-                            .setValue(garageState);
+                                .setValue(garageState);
                         }
-                        break;    
+                        break;
                 }
             } else {
                 that.log(that.service, "get_target_url did not return a valid state");
@@ -260,7 +260,7 @@ HttpExtensiveAccessory.prototype = {
                 match;
         });
     },
-    
+
     httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
         request({
                 url: url,
@@ -276,7 +276,7 @@ HttpExtensiveAccessory.prototype = {
             // error, response, body
             callback);
     },
-    
+
     getGenericState: function(type, url, regexOn, regexOff, callback) {
         if (!url) {
             this.log.warn("Ignoring request; No " + type + " url defined.");
@@ -307,11 +307,11 @@ HttpExtensiveAccessory.prototype = {
             }
         }.bind(this));
     },
-    
+
     getStatusState: function(callback) {
         this.getGenericState("status", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
-    
+
     setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
         if (!url) {
             this.log.warn("Ignoring request; No " + type + " url defined.");
@@ -339,7 +339,7 @@ HttpExtensiveAccessory.prototype = {
             }
         }.bind(this));
     },
-    
+
     setPowerState: function(powerOn, callback) {
         this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, powerOn, callback);
     },
@@ -347,35 +347,27 @@ HttpExtensiveAccessory.prototype = {
     getLockCurrentState: function(callback) {
         this.getGenericState("getLockCurrentState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
-    
-    setLockCurrentState: function(value, callback) {
-        this.setGenericState("setLockCurrentState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
-    },
-    
-    getLockTargetState: function(callback) {
-        this.getGenericState("getLockTargetState", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
-    },
-    
+
     setLockTargetState: function(value, callback) {
         this.setGenericState("setLockTargetState", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
-    
+
     getDoorState: function(callback) {
         this.getGenericState("getDoorState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
-    
+
     setDoorState: function(value, callback) {
         this.setGenericState("setDoorState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
     },
-    
+
     getDoorTarget: function(callback) {
         this.getGenericState("getDoorTarget", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
     },
-    
+
     setDoorTarget: function(value, callback) {
         this.setGenericState("setDoorTarget", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
-    
+
     getLevel: function(callback) {
         if (!this.get_level_url) {
             this.log.warn("Ignoring request; No get_level_url defined.");
@@ -513,39 +505,20 @@ HttpExtensiveAccessory.prototype = {
                 }
 
                 return [informationService, this.lightbulbService];
-                
+
             case "LockMechanism":
                 this.lockService = new Service.LockMechanism(this.name);
 
-                if (this.set_state_url) {
-                    // Only handle "set" if we have a set_state_url
-                    this.lockService
-                        .getCharacteristic(Characteristic.LockCurrentState)
-                        .on('get', this.getLockCurrentState.bind(this))
-                        .on('set', this.setLockCurrentState.bind(this));
-                } else {
-                    this.lockService
-                        .getCharacteristic(Characteristic.LockCurrentState)
-                        .on('get', this.getLockCurrentState.bind(this));
-                }
+                this.lockService
+                    .getCharacteristic(Characteristic.LockCurrentState)
+                    .on('get', this.getLockCurrentState.bind(this));
 
-                if (this.get_target_url) {
-                    // Only handle target if we have a get_target_url
-                    if (this.set_target_url) {
-                        // Only handle "set" if we have a set_target_url
-                        this.lockService
-                            .getCharacteristic(Characteristic.LockTargetState)
-                            .on('get', this.getLockTargetState.bind(this))
-                            .on('set', this.setLockTargetState.bind(this));
-                    } else {
-                        this.lockService
-                            .getCharacteristic(Characteristic.LockTargetState)
-                            .on('get', this.getLockTargetState.bind(this));
-                    }
-                }
+                this.lockService
+                    .getCharacteristic(Characteristic.LockTargetState)
+                    .on('set', this.setLockTargetState.bind(this));
 
-                return [this.lockService];
-                
+                return [informationService, this.lockService];
+
             case "SmokeSensor":
                 this.smokeService = new Service.SmokeSensor(this.name);
                 this.get_state_handling = "continuous";
@@ -557,7 +530,7 @@ HttpExtensiveAccessory.prototype = {
                     });
 
                 return [this.smokeService];
-                
+
             case "MotionSensor":
                 this.motionService = new Service.MotionSensor(this.name);
                 this.get_state_handling = "continuous";
@@ -568,20 +541,20 @@ HttpExtensiveAccessory.prototype = {
                     });
 
                 return [this.motionService];
-                
+
             case "GarageDoorOpener":
                 this.garageDoorService = new Service.GarageDoorOpener(this.name);
-                
+
                 this.garageDoorService
                     .getCharacteristic(Characteristic.CurrentDoorState)
                     .on('get', this.getDoorState.bind(this))
                     .on('set', this.setDoorState.bind(this));
-                    
+
                 this.garageDoorService
                     .getCharacteristic(Characteristic.TargetDoorState)
                     .on('get', this.getDoorTarget.bind(this))
                     .on('set', this.setDoorTarget.bind(this));
-                    
+
                 return [this.garageDoorService];
         }
     }

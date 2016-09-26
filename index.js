@@ -105,7 +105,7 @@ function HttpExtensiveAccessory(log, config) {
                 that.state = foundOn;
 
                 if (that.state !== previousState) {
-                    that.log(that.service, "received data:" + that.name, "state is currently", that.state.toString());
+                    that.log("STATEPOLL: %s, %s changed to %s", that.name, that.service, that.state.toString());
                 }
 
                 switch (that.service) {
@@ -185,7 +185,7 @@ function HttpExtensiveAccessory(log, config) {
                 var target = foundOn;
 
                 if (target !== previousTarget) {
-                    that.log(that.service, "received data:" + that.name, "target is currently", target.toString());
+                    that.log("TARGETPOLL: %s, %s changed to %s", that.name, that.service, target.toString());
                     previousTarget = target;
                 }
 
@@ -260,6 +260,7 @@ HttpExtensiveAccessory.prototype = {
                 match;
         });
     },
+    
     httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
         request({
                 url: url,
@@ -275,6 +276,7 @@ HttpExtensiveAccessory.prototype = {
             // error, response, body
             callback);
     },
+    
     getGenericState: function(type, url, regexOn, regexOff, callback) {
         if (!url) {
             this.log.warn("Ignoring request; No " + type + " url defined.");
@@ -282,8 +284,7 @@ HttpExtensiveAccessory.prototype = {
             return;
         }
 
-        var service = this.service;
-        this.log("Getting", service, "state");
+        this.log("GETSTATE: %s", type);
 
         this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
             if (error) {
@@ -297,7 +298,7 @@ HttpExtensiveAccessory.prototype = {
 
                 if (foundOn || foundOff) {
                     var state = foundOn;
-                    this.log(service, type + " state is currently", state.toString());
+                    this.log("GETSTATE: %s returned: %s", type, state.toString());
                     callback(null, state);
                 } else {
                     this.log('HTTP get %s did not return a valid state', type);
@@ -306,9 +307,11 @@ HttpExtensiveAccessory.prototype = {
             }
         }.bind(this));
     },
+    
     getStatusState: function(callback) {
         this.getGenericState("status", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
+    
     setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
         if (!url) {
             this.log.warn("Ignoring request; No " + type + " url defined.");
@@ -317,7 +320,7 @@ HttpExtensiveAccessory.prototype = {
         }
 
         var valueStr = value ? onStr : offStr;
-        this.log('Setting %s state to %s', type, value);
+        this.log('SETSTATE: %s to %s', type, valueStr);
         var completeUrl = this.format(url, valueStr);
         var completeBody = this.format(body, valueStr);
 
@@ -335,34 +338,40 @@ HttpExtensiveAccessory.prototype = {
                 }
             }
         }.bind(this));
-
     },
+    
     setPowerState: function(powerOn, callback) {
         this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, powerOn, callback);
     },
 
     getLockCurrentState: function(callback) {
-        this.getGenericState("get_state_url", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
+        this.getGenericState("getLockCurrentState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
+    
     setLockCurrentState: function(value, callback) {
-        this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
+        this.setGenericState("setLockCurrentState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
     },
+    
     getLockTargetState: function(callback) {
-        this.getGenericState("get_target_url", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
+        this.getGenericState("getLockTargetState", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
     },
-
+    
     setLockTargetState: function(value, callback) {
-        this.setGenericState("set_target_url", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
+        this.setGenericState("setLockTargetState", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
+    
     getDoorState: function(callback) {
         this.getGenericState("getDoorState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
     },
+    
     setDoorState: function(value, callback) {
         this.setGenericState("setDoorState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
     },
+    
     getDoorTarget: function(callback) {
         this.getGenericState("getDoorTarget", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
     },
+    
     setDoorTarget: function(value, callback) {
         this.setGenericState("setDoorTarget", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
@@ -504,6 +513,7 @@ HttpExtensiveAccessory.prototype = {
                 }
 
                 return [informationService, this.lightbulbService];
+                
             case "LockMechanism":
                 this.lockService = new Service.LockMechanism(this.name);
 
@@ -535,6 +545,7 @@ HttpExtensiveAccessory.prototype = {
                 }
 
                 return [this.lockService];
+                
             case "SmokeSensor":
                 this.smokeService = new Service.SmokeSensor(this.name);
                 this.get_state_handling = "continuous";
@@ -546,6 +557,7 @@ HttpExtensiveAccessory.prototype = {
                     });
 
                 return [this.smokeService];
+                
             case "MotionSensor":
                 this.motionService = new Service.MotionSensor(this.name);
                 this.get_state_handling = "continuous";
@@ -556,6 +568,7 @@ HttpExtensiveAccessory.prototype = {
                     });
 
                 return [this.motionService];
+                
             case "GarageDoorOpener":
                 this.garageDoorService = new Service.GarageDoorOpener(this.name);
                 

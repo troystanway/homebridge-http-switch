@@ -87,7 +87,7 @@ function HttpExtensiveAccessory(log, config) {
             });
         }, {
             longpolling: true,
-            interval: 300,
+            interval: 2000,
             longpollEventName: "statuspoll"
         });
 
@@ -173,7 +173,7 @@ function HttpExtensiveAccessory(log, config) {
             });
         }, {
             longpolling: true,
-            interval: 300,
+            interval: 2000,
             longpollEventName: "targetpoll"
         });
 

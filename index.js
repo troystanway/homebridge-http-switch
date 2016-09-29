@@ -108,6 +108,8 @@ function HttpExtensiveAccessory(log, config) {
                     that.log("STATEPOLL: %s, %s changed to %s", that.name, that.service, that.state.toString());
                 }
 
+                // Set a flag to indicate the the values are getting set during the polling callback
+                this.settingValueDuringPolling = true;
                 switch (that.service) {
                     case "Switch":
                         if (that.switchService) {
@@ -150,6 +152,7 @@ function HttpExtensiveAccessory(log, config) {
                         }
                         break;
                 }
+                delete this.settingValueDuringPolling;
             } else {
                 that.log(that.service, "get_state_url did not return a valid state");
             }
@@ -189,6 +192,8 @@ function HttpExtensiveAccessory(log, config) {
                     previousTarget = target;
                 }
 
+                // Set a flag to indicate the the values are getting set during the polling callback
+                this.settingValueDuringPolling = true;
                 switch (that.service) {
                     case "LockMechanism":
                         if (that.lockService) {
@@ -207,6 +212,7 @@ function HttpExtensiveAccessory(log, config) {
                         }
                         break;
                 }
+                delete this.settingValueDuringPolling;
             } else {
                 that.log(that.service, "get_target_url did not return a valid state");
             }
@@ -241,8 +247,11 @@ function HttpExtensiveAccessory(log, config) {
 
                 if (that.lightbulbService) {
                     that.log(that.service, "received data:" + that.get_level_url, "level is currently", that.currentlevel);
+                    // Set a flag to indicate the the values are getting set during the polling callback
+                    this.settingValueDuringPolling = true;
                     that.lightbulbService.getCharacteristic(Characteristic.Brightness)
                         .setValue(that.currentlevel);
+                    delete this.settingValueDuringPolling;
                 }
             } else {
                 that.log(that.service, "get_level_url did not return a response that matched get_level_regex");
@@ -313,6 +322,12 @@ HttpExtensiveAccessory.prototype = {
     },
 
     setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
+        // If this function is getting called during the polling callback, then the device is already set to the proper
+        // value so we don't need to call http to set it on the device.
+        if (this.settingValueDuringPolling) {
+            callback();
+            return;
+        }
         if (!url) {
             this.log.warn("Ignoring request; No " + type + " url defined.");
             callback(new Error("No " + type + " url defined."));

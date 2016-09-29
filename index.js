@@ -109,7 +109,7 @@ function HttpExtensiveAccessory(log, config) {
                 }
 
                 // Set a flag to indicate the the values are getting set during the polling callback
-                this.settingValueDuringPolling = true;
+                that.settingValueDuringPolling = true;
                 switch (that.service) {
                     case "Switch":
                         if (that.switchService) {
@@ -152,7 +152,7 @@ function HttpExtensiveAccessory(log, config) {
                         }
                         break;
                 }
-                delete this.settingValueDuringPolling;
+                delete that.settingValueDuringPolling;
             } else {
                 that.log(that.service, "get_state_url did not return a valid state");
             }
@@ -193,7 +193,7 @@ function HttpExtensiveAccessory(log, config) {
                 }
 
                 // Set a flag to indicate the the values are getting set during the polling callback
-                this.settingValueDuringPolling = true;
+                that.settingValueDuringPolling = true;
                 switch (that.service) {
                     case "LockMechanism":
                         if (that.lockService) {
@@ -212,7 +212,7 @@ function HttpExtensiveAccessory(log, config) {
                         }
                         break;
                 }
-                delete this.settingValueDuringPolling;
+                delete that.settingValueDuringPolling;
             } else {
                 that.log(that.service, "get_target_url did not return a valid state");
             }
@@ -248,10 +248,10 @@ function HttpExtensiveAccessory(log, config) {
                 if (that.lightbulbService) {
                     that.log(that.service, "received data:" + that.get_level_url, "level is currently", that.currentlevel);
                     // Set a flag to indicate the the values are getting set during the polling callback
-                    this.settingValueDuringPolling = true;
+                    that.settingValueDuringPolling = true;
                     that.lightbulbService.getCharacteristic(Characteristic.Brightness)
                         .setValue(that.currentlevel);
-                    delete this.settingValueDuringPolling;
+                    delete that.settingValueDuringPolling;
                 }
             } else {
                 that.log(that.service, "get_level_url did not return a response that matched get_level_regex");

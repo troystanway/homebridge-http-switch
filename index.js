@@ -506,8 +506,15 @@ HttpExtensiveAccessory.prototype = {
 
         switch (this.service) {
             case "Switch":
+            case "SmokeSensor":
+            case "MotionSensor":            
                 this.serviceObj = this.getServiceObj(this.name);
                 this.stateCharacteristic = this.getStateCharacteristic(this.name);
+                
+                if (this.service === "SmokeSensor" || this.service === "MotionSensor")
+                {
+                    this.get_state_handling = "continuous";
+                }
 
                 if (this.get_state_url || this.set_state_url) {
                     if (this.get_state_url) {
@@ -588,18 +595,6 @@ HttpExtensiveAccessory.prototype = {
 
                 return [informationService, this.lockService];
                 
-            case "SmokeSensor":
-            case "MotionSensor":
-                this.serviceObj = this.getServiceObj(this.name);
-                this.get_state_handling = "continuous";
-                
-                this.stateCharacteristic = this.getStateCharacteristic(this.name);
-                this.stateCharacteristic
-                    .on('get', function(callback) {
-                        callback(null, that.state);
-                    });
-                return [informationService, this.serviceObj];
-
             case "GarageDoorOpener":
                 this.garageDoorService = new Service.GarageDoorOpener(this.name);
 

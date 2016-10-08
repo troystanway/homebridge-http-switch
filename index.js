@@ -500,7 +500,7 @@ HttpExtensiveAccessory.prototype = {
                     }
 
                     if (this.set_state_url) {
-                        onCharacteristic.on('get', this.setPowerState.bind(this));
+                        onCharacteristic.on('set', this.setPowerState.bind(this));
                     }
                 } else {
                     this.log.warn("Lightbulb %s is missing get_state_url or set_state_url", this.name);

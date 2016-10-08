@@ -111,28 +111,17 @@ function HttpExtensiveAccessory(log, config) {
                 // Set a flag to indicate the the values are getting set during the polling callback
                 that.settingValueDuringPolling = true;
                 switch (that.service) {
-                    case "Switch":
-                        if (that.switchService) {
-                            that.switchService.getCharacteristic(Characteristic.On)
-                                .setValue(that.state);
-                        }
-                        break;
                     case "Lightbulb":
                         if (that.lightbulbService) {
                             that.lightbulbService.getCharacteristic(Characteristic.On)
                                 .setValue(that.state);
                         }
                         break;
+                    case "Switch":
                     case "SmokeSensor":
-                        if (that.smokeService) {
-                            that.smokeService.getCharacteristic(Characteristic.SmokeDetected)
-                                .setValue(that.state);
-                        }
-                        break;
                     case "MotionSensor":
-                        if (that.motionService) {
-                            that.motionService.getCharacteristic(Characteristic.MotionDetected)
-                                .setValue(that.state);
+                        if (that.stateCharacteristic) {
+                            that.stateCharacteristic.setValue(that.state);
                         }
                         break;
                     case "LockMechanism":
@@ -449,6 +438,62 @@ HttpExtensiveAccessory.prototype = {
         callback(); // success
     },
 
+    getServiceObj: function(serviceType) {
+        var service;
+        switch (serviceType) {
+            case "Switch":
+                service = new Service.Switch(this.name);
+                break;
+            case "Lightbulb":
+                service = new Service.Lightbulb(this.name);
+                break;
+            case "LockMechanism":
+                service = new Service.LockMechanism(this.name);
+                break;
+            case "SmokeSensor":
+                service = new Service.SmokeSensor(this.name);
+                break;
+            case "MotionSensor":
+                service = new Service.MotionSensor(this.name);
+                break;
+            case "GarageDoorOpener":
+                service = new Service.GarageDoorOpener(this.name);
+                break;
+            default:
+                this.log("Unsupported service: %s", serviceType);
+                service = null;
+                break;
+        }
+        return service;
+    },
+
+    getStateCharacteristic: function(serviceType) {
+        var stateCharacteristic;
+        switch (serviceType) {
+            case "Switch":
+            case "Lightbulb":
+                stateCharacteristic = this.serviceObj.getCharacteristic(Characteristic.On);
+                break;
+            case "LockMechanism":
+                stateCharacteristic = this.serviceObj.getCharacteristic(Characteristic.LockCurrentState);
+                break;
+            case "SmokeSensor":
+                stateCharacteristic = this.serviceObj.getCharacteristic(Characteristic.SmokeDetected);
+                break;
+            case "MotionSensor":
+                stateCharacteristic = this.serviceObj.getCharacteristic(Characteristic.MotionDetected);
+                break;
+            case "GarageDoorOpener":
+                stateCharacteristic = this.serviceObj.getCharacteristic(Characteristic.CurrentDoorState);
+                break;
+            default:
+                this.log("Unsupported service: %s", serviceType);
+                stateCharacteristic = null;
+                break;
+        }
+        return stateCharacteristic;
+    },
+
     getServices: function() {
         var that = this;
 
@@ -461,29 +506,29 @@ HttpExtensiveAccessory.prototype = {
 
         switch (this.service) {
             case "Switch":
-                this.switchService = new Service.Switch(this.name);
-                switch (this.get_state_handling) {
-                    case "onrequest":
-                        this.switchService
-                            .getCharacteristic(Characteristic.On)
-                            .on('get', this.getStatusState.bind(this))
-                            .on('set', this.setPowerState.bind(this));
-                        break;
-                    case "continuous":
-                        this.switchService
-                            .getCharacteristic(Characteristic.On)
-                            .on('get', function(callback) {
+                this.serviceObj = this.getServiceObj(this.name);
+                this.stateCharacteristic = this.getStateCharacteristic(this.name);
+
+                if (this.get_state_url || this.set_state_url) {
+                    if (this.get_state_url) {
+                        if (this.get_state_handling === "continuous") {
+                            this.stateCharacteristic.on('get', function(callback) {
                                 callback(null, that.state);
-                            })
-                            .on('set', this.setPowerState.bind(this));
-                        break;
-                    default:
-                        this.switchService
-                            .getCharacteristic(Characteristic.On)
-                            .on('set', this.setPowerState.bind(this));
-                        break;
+                            });
+                        } else {
+                            this.stateCharacteristic.on('get', this.getStatusState.bind(this));
+                        }
+                    }
+
+                    if (this.set_state_url) {
+                        this.stateCharacteristic.on('set', this.setPowerState.bind(this));
+                    }
+                } else {
+                    this.log.warn("%s %s is missing get_state_url or set_state_url", this.service, this.name);
                 }
-                return [this.switchService];
+                                
+                return [informationService, this.serviceObj];
+                
             case "Lightbulb":
                 this.lightbulbService = new Service.Lightbulb(this.name);
                 var onCharacteristic = this.lightbulbService.getCharacteristic(Characteristic.On);
@@ -542,29 +587,18 @@ HttpExtensiveAccessory.prototype = {
                     .on('set', this.setLockTargetState.bind(this));
 
                 return [informationService, this.lockService];
-
+                
             case "SmokeSensor":
-                this.smokeService = new Service.SmokeSensor(this.name);
-                this.get_state_handling = "continuous";
-
-                this.smokeService
-                    .getCharacteristic(Characteristic.SmokeDetected)
-                    .on('get', function(callback) {
-                        callback(null, that.state);
-                    });
-
-                return [this.smokeService];
-
             case "MotionSensor":
-                this.motionService = new Service.MotionSensor(this.name);
+                this.serviceObj = this.getServiceObj(this.name);
                 this.get_state_handling = "continuous";
-                this.motionService
-                    .getCharacteristic(Characteristic.MotionDetected)
+                
+                this.stateCharacteristic = this.getStateCharacteristic(this.name);
+                this.stateCharacteristic
                     .on('get', function(callback) {
                         callback(null, that.state);
                     });
-
-                return [this.motionService];
+                return [informationService, this.serviceObj];
 
             case "GarageDoorOpener":
                 this.garageDoorService = new Service.GarageDoorOpener(this.name);

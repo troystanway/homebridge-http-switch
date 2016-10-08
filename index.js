@@ -240,10 +240,10 @@ function HttpExtensiveAccessory(log, config) {
 
         levelemitter.on("levelpoll", function(data) {
             var re = new RegExp(that.get_level_regex);
-            var matches = re.match(data);
+            var matches = data.match(re);
 
             if (matches) {
-                that.currentlevel = matches[0];
+                that.currentlevel = parseInt(matches[1],10);
 
                 if (that.lightbulbService) {
                     that.log(that.service, "received data:" + that.get_level_url, "level is currently", that.currentlevel);
@@ -394,7 +394,6 @@ HttpExtensiveAccessory.prototype = {
             return;
         }
         var url = this.get_level_url;
-        var re = new RegExp(this.get_level_regex);
         this.log("Getting level");
 
         this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
@@ -402,10 +401,11 @@ HttpExtensiveAccessory.prototype = {
                 this.log('HTTP get brightness function failed: %s', error.message);
                 callback(error);
             } else {
-                var matches = re.match(responseBody);
+                var re = new RegExp(this.get_level_regex);
+                var matches = responseBody.match(re);
                 if (matches) {
                     // Get the first match
-                    var level = matches[0];
+                    var level = parseInt(matches[1],10);
                     this.log("The level is currently %s", level);
                     callback(null, level);
                 } else {

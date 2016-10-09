@@ -549,8 +549,8 @@ HttpExtensiveAccessory.prototype = {
             case "Lightbulb":
             case "LockMechanism":
             case "GarageDoorOpener":
-                this.serviceObj = this.getServiceObj(this.name);
-                this.stateCharacteristic = this.getStateCharacteristic(this.name);
+                this.serviceObj = this.getServiceObj(this.service);
+                this.stateCharacteristic = this.getStateCharacteristic(this.service);
 
                 if (this.service === "SmokeSensor" || this.service === "MotionSensor") {
                     this.get_state_handling = "continuous";
@@ -577,7 +577,7 @@ HttpExtensiveAccessory.prototype = {
 
                 // Handle target characteristics
                 if (this.get_target_url || this.set_target_url) {
-                    this.targetCharacteristic = this.getTargetCharacteristic(this.name);
+                    this.targetCharacteristic = this.getTargetCharacteristic(this.service);
 
                     if (this.get_target_url) {
                         if (this.get_target_handling === "continuous") {
@@ -598,7 +598,7 @@ HttpExtensiveAccessory.prototype = {
 
                 // Handle level characteristics
                 if (this.get_level_url || this.set_level_url) {
-                    this.levelCharacteristic = this.getLevelCharacteristic(this.name);
+                    this.levelCharacteristic = this.getLevelCharacteristic(this.service);
 
                     if (this.levelCharacteristic) {
                         if (this.get_level_url) {

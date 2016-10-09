@@ -234,11 +234,11 @@ function HttpExtensiveAccessory(log, config) {
             if (matches) {
                 that.currentlevel = parseInt(matches[1], 10);
 
-                if (that.lightbulbService) {
+                if (that.levelCharacteristic) {
                     that.log(that.service, "received data:" + that.get_level_url, "level is currently", that.currentlevel);
                     // Set a flag to indicate the the values are getting set during the polling callback
                     that.settingValueDuringPolling = true;
-                    that.lightbulbService.getCharacteristic(Characteristic.Brightness)
+                    that.levelCharacteristic
                         .setValue(that.currentlevel);
                     delete that.settingValueDuringPolling;
                 }
@@ -387,7 +387,7 @@ HttpExtensiveAccessory.prototype = {
 
         this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
             if (error) {
-                this.log('HTTP get brightness function failed: %s', error.message);
+                this.log('HTTP get level function failed: %s', error.message);
                 callback(error);
             } else {
                 var re = new RegExp(this.get_level_regex);
@@ -406,6 +406,10 @@ HttpExtensiveAccessory.prototype = {
     },
 
     setLevel: function(level, callback) {
+        if (this.settingValueDuringPolling) {
+            callback();
+            return;
+        }
         if (!this.set_level_url) {
             this.log.warn("Ignoring request; No set_level_url defined.");
             callback(new Error("No set_level_url defined."));
@@ -494,6 +498,28 @@ HttpExtensiveAccessory.prototype = {
         return stateCharacteristic;
     },
 
+    getLevelCharacteristic: function(serviceType) {
+        var levelCharacteristic;
+        switch (serviceType) {
+            case "Lightbulb":
+                levelCharacteristic = this.serviceObj.addCharacteristic(new Characteristic.Brightness());
+                break;
+            case "Switch":
+            case "LockMechanism":
+            case "SmokeSensor":
+            case "MotionSensor":
+            case "GarageDoorOpener":
+                this.log("%s %s doesn't support a get_level_url", serviceType, this.name);
+                levelCharacteristic = null;
+                break;
+            default:
+                this.log("Unsupported service: %s", serviceType);
+                levelCharacteristic = null;
+                break;
+        }
+        return levelCharacteristic;
+    },
+
     getServices: function() {
         var that = this;
 
@@ -507,12 +533,12 @@ HttpExtensiveAccessory.prototype = {
         switch (this.service) {
             case "Switch":
             case "SmokeSensor":
-            case "MotionSensor":            
+            case "MotionSensor":
+            case "Lightbulb":
                 this.serviceObj = this.getServiceObj(this.name);
                 this.stateCharacteristic = this.getStateCharacteristic(this.name);
-                
-                if (this.service === "SmokeSensor" || this.service === "MotionSensor")
-                {
+
+                if (this.service === "SmokeSensor" || this.service === "MotionSensor") {
                     this.get_state_handling = "continuous";
                 }
 
@@ -533,50 +559,29 @@ HttpExtensiveAccessory.prototype = {
                 } else {
                     this.log.warn("%s %s is missing get_state_url or set_state_url", this.service, this.name);
                 }
-                                
-                return [informationService, this.serviceObj];
-                
-            case "Lightbulb":
-                this.lightbulbService = new Service.Lightbulb(this.name);
-                var onCharacteristic = this.lightbulbService.getCharacteristic(Characteristic.On);
 
-                if (this.get_state_url || this.set_state_url) {
-                    if (this.get_state_url) {
-                        if (this.get_state_handling === "continuous") {
-                            onCharacteristic.on('get', function(callback) {
-                                callback(null, that.state);
-                            });
-                        } else {
-                            onCharacteristic.on('get', this.getStatusState.bind(this));
-                        }
-                    }
-
-                    if (this.set_state_url) {
-                        onCharacteristic.on('set', this.setPowerState.bind(this));
-                    }
-                } else {
-                    this.log.warn("Lightbulb %s is missing get_state_url or set_state_url", this.name);
-                }
-
+                // Handle level characteristics
                 if (this.get_level_url || this.set_level_url) {
-                    var brightnessCharacteristic = this.lightbulbService.addCharacteristic(new Characteristic.Brightness());
+                    this.levelCharacteristic = this.getLevelCharacteristic(this.name);
 
-                    if (this.get_level_url) {
-                        if (this.get_level_handling === "continuous") {
-                            brightnessCharacteristic.on('get', function(callback) {
-                                callback(null, that.currentlevel);
-                            });
-                        } else {
-                            brightnessCharacteristic.on('get', this.getLevel.bind(this));
+                    if (this.levelCharacteristic) {
+                        if (this.get_level_url) {
+                            if (this.get_level_handling === "continuous") {
+                                this.levelCharacteristic.on('get', function(callback) {
+                                    callback(null, that.currentlevel);
+                                });
+                            } else {
+                                this.levelCharacteristic.on('get', this.getLevel.bind(this));
+                            }
                         }
-                    }
 
-                    if (this.set_level_url) {
-                        brightnessCharacteristic.on('set', this.setLevel.bind(this));
+                        if (this.set_level_url) {
+                            this.levelCharacteristic.on('set', this.setLevel.bind(this));
+                        }
                     }
                 }
 
-                return [informationService, this.lightbulbService];
+                return [informationService, this.serviceObj];
 
             case "LockMechanism":
                 this.lockService = new Service.LockMechanism(this.name);
@@ -594,7 +599,7 @@ HttpExtensiveAccessory.prototype = {
                     .on('set', this.setLockTargetState.bind(this));
 
                 return [informationService, this.lockService];
-                
+
             case "GarageDoorOpener":
                 this.garageDoorService = new Service.GarageDoorOpener(this.name);
 

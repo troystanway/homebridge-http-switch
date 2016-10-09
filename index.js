@@ -582,7 +582,7 @@ HttpExtensiveAccessory.prototype = {
                     if (this.get_target_url) {
                         if (this.get_target_handling === "continuous") {
                             this.targetCharacteristic.on('get', function(callback) {
-                                callback(null, this.targetState);
+                                callback(null, that.targetState);
                             });
                         } else {
                             this.targetCharacteristic.on('get', this.getTargetState.bind(this));

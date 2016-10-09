@@ -112,11 +112,6 @@ function HttpExtensiveAccessory(log, config) {
                 that.settingValueDuringPolling = true;
                 switch (that.service) {
                     case "Lightbulb":
-                        if (that.lightbulbService) {
-                            that.lightbulbService.getCharacteristic(Characteristic.On)
-                                .setValue(that.state);
-                        }
-                        break;
                     case "Switch":
                     case "SmokeSensor":
                     case "MotionSensor":

@@ -199,7 +199,7 @@ function HttpExtensiveAccessory(log, config) {
                 }
 
                 // Set a flag to indicate the the values are getting set during the polling callback
-                that.settingValueDuringPolling = true;
+                that.settingTargetValueDuringPolling = true;
                 var targetInfo = that.targetInfo[that.service];
                 
                 if (targetInfo) {
@@ -209,7 +209,7 @@ function HttpExtensiveAccessory(log, config) {
                         that.targetCharacteristic.setValue(value);
                     }
                 }
-                delete that.settingValueDuringPolling;
+                delete that.settingTargetValueDuringPolling;
             } else {
                 that.log(that.service, "get_target_url did not return a valid state");
             }
@@ -245,10 +245,10 @@ function HttpExtensiveAccessory(log, config) {
                 if (that.levelCharacteristic) {
                     that.log(that.service, "received data:" + that.get_level_url, "level is currently", that.currentlevel);
                     // Set a flag to indicate the the values are getting set during the polling callback
-                    that.settingValueDuringPolling = true;
+                    that.settingLevelValueDuringPolling = true;
                     that.levelCharacteristic
                         .setValue(that.currentlevel);
-                    delete that.settingValueDuringPolling;
+                    delete that.settingLevelValueDuringPolling;
                 }
             } else {
                 that.log(that.service, "get_level_url did not return a response that matched get_level_regex");
@@ -321,7 +321,7 @@ HttpExtensiveAccessory.prototype = {
     setGenericState: function(type, url, method, body, onStr, offStr, value, callback) {
         // If this function is getting called during the polling callback, then the device is already set to the proper
         // value so we don't need to call http to set it on the device.
-        if (this.settingValueDuringPolling) {
+        if (this.settingValueDuringPolling || this.settingTargetValueDuringPolling) {
             callback();
             return;
         }
@@ -394,7 +394,7 @@ HttpExtensiveAccessory.prototype = {
     },
 
     setLevel: function(level, callback) {
-        if (this.settingValueDuringPolling) {
+        if (this.settingLevelValueDuringPolling) {
             callback();
             return;
         }

@@ -17,6 +17,45 @@ module.exports = function(homebridge) {
 function HttpExtensiveAccessory(log, config) {
     this.log = log;
 
+    // Characteristic info
+    this.stateInfo = {
+        "Lightbulb": {
+            "true": true,
+            "false": false
+        },
+        "Switch": {
+            "true": true,
+            "false": false
+        },
+        "SmokeSensor": {
+            "true": Characteristic.SmokeDetected.SMOKE_DETECTED,
+            "false": Characteristic.SmokeDetected.SMOKE_NOT_DETECTED
+        },
+        "MotionSensor": {
+            "true": true,
+            "false": false
+        },
+        "LockMechanism": {
+            "true": Characteristic.LockCurrentState.SECURED,
+            "false": Characteristic.LockCurrentState.UNSECURED
+        },
+        "GarageDoorOpener": {
+            "true": Characteristic.CurrentDoorState.CLOSED,
+            "false": Characteristic.CurrentDoorState.OPEN
+        }
+    };
+
+    this.targetInfo = {
+        "LockMechanism": {
+            "true": Characteristic.LockTargetState.SECURED,
+            "false": Characteristic.LockTargetState.UNSECURED
+        },
+        "GarageDoorOpener": {
+            "true": Characteristic.TargetDoorState.CLOSED,
+            "false": Characteristic.TargetDoorState.OPEN
+        }
+    };
+
     // General info
     this.name = config["name"];
     this.service = config["service"] || "Switch";
@@ -64,6 +103,8 @@ function HttpExtensiveAccessory(log, config) {
 
     // Initialize our state to false
     this.state = false;
+    this.targetState = false;
+
     // Initialize our level to 0
     this.currentlevel = 0;
     // Save off this as that
@@ -110,31 +151,13 @@ function HttpExtensiveAccessory(log, config) {
 
                 // Set a flag to indicate the the values are getting set during the polling callback
                 that.settingValueDuringPolling = true;
-                switch (that.service) {
-                    case "Lightbulb":
-                    case "Switch":
-                    case "SmokeSensor":
-                    case "MotionSensor":
-                        if (that.stateCharacteristic) {
-                            that.stateCharacteristic.setValue(that.state);
-                        }
-                        break;
-                    case "LockMechanism":
-                        if (that.lockService) {
-                            var lockValue = that.state ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-
-                            that.lockService.getCharacteristic(Characteristic.LockCurrentState)
-                                .setValue(lockValue);
-                        }
-                        break;
-                    case "GarageDoorOpener":
-                        if (this.garageDoorService) {
-                            var garageState = that.state ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN;
-
-                            that.garageDoorService.getCharacteristic(Characteristic.CurrentDoorState)
-                                .setValue(garageState);
-                        }
-                        break;
+                var stateInfo = that.stateInfo[that.service];
+                
+                if (stateInfo) {
+                    if (that.stateCharacteristic) {
+                        var value = stateInfo[that.state.toString()];
+                        that.stateCharacteristic.setValue(value);
+                    }
                 }
                 delete that.settingValueDuringPolling;
             } else {
@@ -146,7 +169,6 @@ function HttpExtensiveAccessory(log, config) {
     // target Polling
     if ((this.get_target_url && this.get_target_handling === "continuous")) {
         var targetUrl = this.get_target_url;
-        var previousTarget = false;
         var targetemitter = pollingtoevent(function(done) {
             that.httpRequest(targetUrl, "", "GET", that.username, that.password, that.sendimmediately, function(error, response, body) {
                 if (error) {
@@ -171,30 +193,21 @@ function HttpExtensiveAccessory(log, config) {
                 // Is the previous state different than the new state?
                 var target = foundOn;
 
-                if (target !== previousTarget) {
+                if (target !== that.targetState) {
                     that.log("TARGETPOLL: %s, %s changed to %s", that.name, that.service, target.toString());
-                    previousTarget = target;
+                    that.targetState = target;
                 }
 
                 // Set a flag to indicate the the values are getting set during the polling callback
                 that.settingValueDuringPolling = true;
-                switch (that.service) {
-                    case "LockMechanism":
-                        if (that.lockService) {
-                            var lockValue = target ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+                var targetInfo = that.targetInfo[that.service];
+                
+                if (targetInfo) {
+                    if (that.targetCharacteristic) {
+                        var value = targetInfo[target.toString()];
 
-                            that.lockService.getCharacteristic(Characteristic.LockTargetState)
-                                .setValue(lockValue);
-                        }
-                        break;
-                    case "GarageDoorOpener":
-                        if (this.garageDoorService) {
-                            var garageState = that.state ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN;
-
-                            that.garageDoorService.getCharacteristic(Characteristic.TargetDoorState)
-                                .setValue(garageState);
-                        }
-                        break;
+                        that.targetCharacteristic.setValue(value);
+                    }
                 }
                 delete that.settingValueDuringPolling;
             } else {
@@ -339,36 +352,16 @@ HttpExtensiveAccessory.prototype = {
         }.bind(this));
     },
 
-    setPowerState: function(powerOn, callback) {
+    setStatusState: function(powerOn, callback) {
         this.setGenericState("set_state_url", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, powerOn, callback);
     },
 
-    getLockCurrentState: function(callback) {
-        this.getGenericState("getLockCurrentState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
+    getTargetState: function(callback) {
+        this.getGenericState("get_target_url", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
     },
 
-    getLockTargetState: function(callback) {
-        this.getGenericState("getLockTargetState", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
-    },
-
-    setLockTargetState: function(value, callback) {
-        this.setGenericState("setLockTargetState", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
-    },
-
-    getDoorState: function(callback) {
-        this.getGenericState("getDoorState", this.get_state_url, this.get_state_on_regex, this.get_state_off_regex, callback);
-    },
-
-    setDoorState: function(value, callback) {
-        this.setGenericState("setDoorState", this.set_state_url, this.set_state_method, this.set_state_body, this.set_state_on, this.set_state_off, value, callback);
-    },
-
-    getDoorTarget: function(callback) {
-        this.getGenericState("getDoorTarget", this.get_target_url, this.get_target_on_regex, this.get_target_off_regex, callback);
-    },
-
-    setDoorTarget: function(value, callback) {
-        this.setGenericState("setDoorTarget", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
+    setTargetState: function(value, callback) {
+        this.setGenericState("set_target_url", this.set_target_url, this.set_target_method, this.set_target_body, this.set_target_on, this.set_target_off, value, callback);
     },
 
     getLevel: function(callback) {
@@ -493,6 +486,30 @@ HttpExtensiveAccessory.prototype = {
         return stateCharacteristic;
     },
 
+    getTargetCharacteristic: function(serviceType) {
+        var targetCharacteristic;
+        switch (serviceType) {
+            case "LockMechanism":
+                targetCharacteristic = this.serviceObj.getCharacteristic(Characteristic.LockTargetState);
+                break;
+            case "GarageDoorOpener":
+                targetCharacteristic = this.serviceObj.getCharacteristic(Characteristic.TargetDoorState);
+                break;
+            case "Switch":
+            case "Lightbulb":
+            case "SmokeSensor":
+            case "MotionSensor":
+                this.log("%s %s doesn't support a get_target_url", serviceType, this.name);
+                targetCharacteristic = null;
+                break;
+            default:
+                this.log("Unsupported service: %s", serviceType);
+                targetCharacteristic = null;
+                break;
+        }
+        return targetCharacteristic;
+    },
+
     getLevelCharacteristic: function(serviceType) {
         var levelCharacteristic;
         switch (serviceType) {
@@ -530,6 +547,8 @@ HttpExtensiveAccessory.prototype = {
             case "SmokeSensor":
             case "MotionSensor":
             case "Lightbulb":
+            case "LockMechanism":
+            case "GarageDoorOpener":
                 this.serviceObj = this.getServiceObj(this.name);
                 this.stateCharacteristic = this.getStateCharacteristic(this.name);
 
@@ -537,6 +556,7 @@ HttpExtensiveAccessory.prototype = {
                     this.get_state_handling = "continuous";
                 }
 
+                // Handle state characteristics
                 if (this.get_state_url || this.set_state_url) {
                     if (this.get_state_url) {
                         if (this.get_state_handling === "continuous") {
@@ -549,10 +569,31 @@ HttpExtensiveAccessory.prototype = {
                     }
 
                     if (this.set_state_url) {
-                        this.stateCharacteristic.on('set', this.setPowerState.bind(this));
+                        this.stateCharacteristic.on('set', this.setStatusState.bind(this));
                     }
                 } else {
                     this.log.warn("%s %s is missing get_state_url or set_state_url", this.service, this.name);
+                }
+
+                // Handle target characteristics
+                if (this.get_target_url || this.set_target_url) {
+                    this.targetCharacteristic = this.getTargetCharacteristic(this.name);
+
+                    if (this.get_target_url) {
+                        if (this.get_target_handling === "continuous") {
+                            this.targetCharacteristic.on('get', function(callback) {
+                                callback(null, this.targetState);
+                            });
+                        } else {
+                            this.targetCharacteristic.on('get', this.getTargetState.bind(this));
+                        }
+                    }
+
+                    if (this.set_target_url) {
+                        this.targetCharacteristic.on('set', this.setTargetState.bind(this));
+                    }
+                } else {
+                    this.log.warn("%s %s is missing get_target_url or set_target_url", this.service, this.name);
                 }
 
                 // Handle level characteristics
@@ -577,38 +618,6 @@ HttpExtensiveAccessory.prototype = {
                 }
 
                 return [informationService, this.serviceObj];
-
-            case "LockMechanism":
-                this.lockService = new Service.LockMechanism(this.name);
-
-                this.lockService
-                    .getCharacteristic(Characteristic.LockCurrentState)
-                    .on('get', this.getLockCurrentState.bind(this));
-
-                this.lockService
-                    .getCharacteristic(Characteristic.LockTargetState)
-                    .on('get', this.getLockTargetState.bind(this));
-
-                this.lockService
-                    .getCharacteristic(Characteristic.LockTargetState)
-                    .on('set', this.setLockTargetState.bind(this));
-
-                return [informationService, this.lockService];
-
-            case "GarageDoorOpener":
-                this.garageDoorService = new Service.GarageDoorOpener(this.name);
-
-                this.garageDoorService
-                    .getCharacteristic(Characteristic.CurrentDoorState)
-                    .on('get', this.getDoorState.bind(this))
-                    .on('set', this.setDoorState.bind(this));
-
-                this.garageDoorService
-                    .getCharacteristic(Characteristic.TargetDoorState)
-                    .on('get', this.getDoorTarget.bind(this))
-                    .on('set', this.setDoorTarget.bind(this));
-
-                return [this.garageDoorService];
         }
     }
 };

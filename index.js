@@ -1,7 +1,7 @@
 "use strict";
 
 var Service, Characteristic;
-var request = require("requestretry");
+var request = require("request");
 var pollingtoevent = require('polling-to-event');
 
 

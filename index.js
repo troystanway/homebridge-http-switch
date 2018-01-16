@@ -87,7 +87,7 @@ function HttpSwitchAccessory(log, config) {
                 var binaryState = parseInt(data);
                 that.state = binaryState > 0;
             }
-            that.log(that.services.Switch, "status received from: " + that.statusUrl, "state is currently: ", that.state.toString());
+            that.log("status received from: " + that.statusUrl, "state is currently: ", that.state.toString());
 
             that.services.Switch
                 .getCharacteristic(Characteristic.On)
@@ -119,7 +119,6 @@ HttpSwitchAccessory.prototype.getStatusState = function (callback) {
         return;
     }
 
-    var service = this.services.Switch;
     var url = this.statusUrl;
     var regex = this.statusRegex;
 
@@ -138,7 +137,7 @@ HttpSwitchAccessory.prototype.getStatusState = function (callback) {
                 var binaryState = parseInt(responseBody);
                 powerOn = binaryState > 0;
             }
-            this.log(service, "status received from: " + url, "state is currently: ", powerOn.toString());
+            this.log("status received from: " + url, "state is currently: ", powerOn.toString());
             callback(null, powerOn);
         }
     }.bind(this));

@@ -1,39 +1,55 @@
-# homebridge-http-advanced
+# homebridge-http-switch
 
-Supports https devices on the HomeBridge Platform and provides a real time polling for getting the "On" and brightness level characteristics to Homekit. Includes Switch, Light, Door, Smoke and Motion sensor polling.
+A switch plugin for homebridge (https://github.com/nfarina/homebridge) which integrates with HTTP(S) APIs.
 
 # Installation
 
-1. Install homebridge using: npm install -g homebridge
-2. Install this plugin by cloning this repo.
-3. Update your configuration file. See sample-config.json in this repository for a sample. 
+1. Install homebridge using: `npm install -g homebridge`
+2. Install this plugin: `npm install -g git+https://git@github.com/vectronic/homebridge-http-switch.git`
+3. Update your `config.json` configuration file
 
 # Configuration
 
-The configuration for this plugin is the same as [homebridge-http](https://github.com/rudders/homebridge-http) but includes an additional method to read the power state of the device and the brightness level. Specify the `status_url` in your config.json that returns the status of the device as an integer (0 = off, 1 = on). Specify the `brightnesslvl_url` to return the current brighness level as an integer.  Specify `status_regex` to specify a regular expression to match against the response from the status_url request.
+The name of the switch is specified by `name` (default `HTTP Switch`)
 
-Status regular expression matching (`status_regex`) defines a regular expression string that is used to determine if the response from a status_url request is true or false.  For instance, if your status_url returns "PowerState:true" when the status is on and "PowerState:false" when the status is off, in your configuration you could specify: `"status_regex": "PowerState:true"`.
+The switch is turned on by a request to the URL specified by `onUrl` and it is turned off by a request to `offUrl`.
 
-Switch handling and brightness handling support 3 methods, yes for polling on app load, realtime for constant polling or no polling
+Optional body content for these requests can be specified with `onBody` and `offBody`.
+
+The HTTP method to use for on and off requests can be specified via `httpMethod` (default `GET`)
+
+Switch status checking mode is specified via `checkStatus`:
+ 
+ * `yes` for getting status on app load
+ * `polling` for constant polling of status
+ * `no` for no status checking (default)
+
+If `polling` is specified, then `pollingInterval` can be used to specify the polling interval in milliseconds (default `10000`).
+
+If `polling` or `yes` is specified, then `statusUrl` should be a URL which returns the status of the switch in the response body as an integer (0 = off, 1 = on). This URL is called using HTTP GET.
+
+For more complex status responses, `statusRegex` defines a regular expression string that is used to determine if the response from a `statusUrl` request is true or false.
+
+For example if `statusUrl` returns `PowerState:true` when the status is on and `PowerState:false` when the status is off then specify: 
+
+```
+    "statusRegex": "PowerState:true"
+```
 
 Configuration sample:
 
  ```
 "accessories": [ 
 	{
-		"accessory": "Http",
-		"name": "Alfresco Lamp",
-		"switchHandling": "realtime",
-		"http_method": "GET",
-		"on_url":      "http://localhost/controller/1700/ON",
-		"off_url":     "http://localhost/controller/1700/OFF",
-		"status_url":  "http://localhost/status/100059",
-		"service": "Light",
-		"brightnessHandling": "yes",
-		"brightness_url":     "http://localhost/controller/1707/%b",
-		"brightnesslvl_url":  "http://localhost/status/100054",
-		"sendimmediately": "",
-		"username" : "",
-		"password" : ""					    
-       } 
-    ]
+		"accessory": "http-switch",
+		"name": "Lamp",
+		"checkStatus": "polling",
+		"pollingInterval": 10000,
+		"statusUrl":  "http://localhost/status/100059",
+		"statusRegex": "^.*off.: false.*$"
+		"onUrl":      "http://localhost/controller/1700/ON",
+		"offUrl":     "http://localhost/controller/1700/OFF",
+		"httpMethod": "GET",
+   } 
+]
+```    

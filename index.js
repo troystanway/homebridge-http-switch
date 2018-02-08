@@ -99,14 +99,21 @@ function HttpSwitchAccessory(log, config) {
 
 HttpSwitchAccessory.prototype.httpRequest = function (url, body, method, callback) {
 
+    var callbackMethod = callback;
+
     request({
             url: url,
             body: body,
             method: method,
             rejectUnauthorized: false
         },
-        function (error, response, body) {
-            callback(error, response, body)
+        function (error, response, responseBody) {
+            if (callbackMethod) {
+                callbackMethod(error, response, responseBody)
+            }
+            else {
+                this.log.warn("callbackMethod not defined!");
+            }
         })
 };
 

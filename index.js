@@ -45,19 +45,19 @@ function HttpSwitchAccessory(log, config) {
     switch (this.checkStatus) {
         case "yes":
             this.services.Switch
-                .getCharacteristic(Characteristic.On)
+                .getCharacteristic(Characteristic.Active)
                 .on('get', this.getStatusState.bind(this))
                 .on('set', this.setPowerState.bind(this));
             break;
         case "polling":
             this.services.Switch
-                .getCharacteristic(Characteristic.On)
+                .getCharacteristic(Characteristic.Active)
                 .on('get', function(callback) {callback(null, that.state)})
                 .on('set', this.setPowerState.bind(this));
             break;
         default	:
             this.services.Switch
-                .getCharacteristic(Characteristic.On)
+                .getCharacteristic(Characteristic.Active)
                 .on('set', this.setPowerState.bind(this));
             break;
     }
@@ -90,7 +90,7 @@ function HttpSwitchAccessory(log, config) {
             that.log("status received from: " + that.statusUrl, "state is currently: ", that.state.toString());
 
             that.services.Switch
-                .getCharacteristic(Characteristic.On)
+                .getCharacteristic(Characteristic.Active)
                 .setValue(that.state);
         });
     }

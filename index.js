@@ -34,7 +34,7 @@ function HttpSwitchAccessory(log, config) {
 
     this.services = {
         AccessoryInformation: new Service.AccessoryInformation(),
-        Switch: new Service.Switch(this.name)
+        Valve: new Service.Valve(this.name)
     };
 
     this.services.AccessoryInformation
@@ -44,19 +44,19 @@ function HttpSwitchAccessory(log, config) {
 
     switch (this.checkStatus) {
         case "yes":
-            this.services.Switch
+            this.services.Valve
                 .getCharacteristic(Characteristic.Active)
                 .on('get', this.getStatusState.bind(this))
                 .on('set', this.setPowerState.bind(this));
             break;
         case "polling":
-            this.services.Switch
+            this.services.Valve
                 .getCharacteristic(Characteristic.Active)
                 .on('get', function(callback) {callback(null, that.state)})
                 .on('set', this.setPowerState.bind(this));
             break;
         default	:
-            this.services.Switch
+            this.services.Valve
                 .getCharacteristic(Characteristic.Active)
                 .on('set', this.setPowerState.bind(this));
             break;
@@ -89,7 +89,7 @@ function HttpSwitchAccessory(log, config) {
             }
             that.log("status received from: " + that.statusUrl, "state is currently: ", that.state.toString());
 
-            that.services.Switch
+            that.services.Valve
                 .getCharacteristic(Characteristic.Active)
                 .setValue(that.state);
         });
@@ -186,5 +186,5 @@ HttpSwitchAccessory.prototype.setPowerState = function (powerOn, callback) {
 
 
 HttpSwitchAccessory.prototype.getServices = function () {
-    return [this.services.AccessoryInformation, this.services.Switch];
+    return [this.services.AccessoryInformation, this.services.Valve];
 };
